@@ -18,9 +18,28 @@ const exitsuccess = 0
 const exitfailure = 1
 
 
+type mp3adorahandler interface {
+    processape(bytes []byte) (err error)
+    processid3v1(bytes []byte) (err error)
+    processid3v2(bytes []byte) (err error)
+    processmp3frame(bytes []byte) (err error)
+    processunrecognised(byte byte) (err error)
+}
+
+
+type mp3adora struct {
+    mp3adorahandler mp3adorahandler
+}
+
+
+func newmp3adora(mp3adorahandler mp3adorahandler) *mp3adora {
+    return &mp3adora{ mp3adorahandler: mp3adorahandler }
+}
+
+
 // See:  http://mutagen-specs.readthedocs.io/en/latest/apev2/apev2.html
 //       http://wiki.hydrogenaud.io/index.php?title=APEv2_specification
-func parseape(reader io.Reader) (size int, err error) {
+func (m *mp3adora) parseape(reader io.Reader) (size int, err error) {
     var n int
 
     // First sixteen bytes are:
@@ -52,13 +71,15 @@ func parseape(reader io.Reader) (size int, err error) {
         return 0, err
     }
 
-    fmt.Printf("ape:       %d bytes\n", size)
+    if err = m.mp3adorahandler.processape(bytes); err != nil {
+        return size, err
+    }
 
     return size, nil
 }
 
 
-func parseid3v1(reader io.Reader) (size int, err error) {
+func (m *mp3adora) parseid3v1(reader io.Reader) (size int, err error) {
     var n int
 
     size = 128
@@ -68,13 +89,15 @@ func parseid3v1(reader io.Reader) (size int, err error) {
         return 0, err
     }
 
-    fmt.Printf("id3v1:     %d bytes\n", size)
+    if err = m.mp3adorahandler.processid3v1(bytes); err != nil {
+        return size, err
+    }
 
     return size, nil
 }
 
 
-func parseid3v2(reader io.Reader) (size int, err error) {
+func (m *mp3adora) parseid3v2(reader io.Reader) (size int, err error) {
     var n int
 
     // First ten bytes are:
@@ -104,13 +127,15 @@ func parseid3v2(reader io.Reader) (size int, err error) {
         return 0, err
     }
 
-    fmt.Printf("id3v2:     %d bytes\n", size)
+    if err = m.mp3adorahandler.processid3v2(bytes); err != nil {
+        return size, err
+    }
 
     return size, nil
 }
 
 
-func parsemp3frame(reader io.Reader) (size int, err error) {
+func (m *mp3adora) parsemp3frame(reader io.Reader) (size int, err error) {
     var n int
 
     bytes4 := make([]byte, 4)
@@ -244,13 +269,15 @@ func parsemp3frame(reader io.Reader) (size int, err error) {
         return 0, err
     }
 
-    fmt.Printf("mp3frame:  %d bytes\n", size)
+    if err = m.mp3adorahandler.processmp3frame(bytes); err != nil {
+        return size, err
+    }
 
     return size, nil
 }
 
 
-func scan(reader io.Reader) (size int, err error) {
+func (m *mp3adora) parse(reader io.Reader) (size int, err error) {
     bufferedreader := bufio.NewReader(reader)
 
     var bytes []byte
@@ -261,7 +288,7 @@ func scan(reader io.Reader) (size int, err error) {
         }
 
         if string(bytes) == "TAG" {
-            if sizeframe, err = parseid3v1(bufferedreader); err != nil {
+            if sizeframe, err = m.parseid3v1(bufferedreader); err != nil {
                 break
             }
             size += sizeframe
@@ -269,7 +296,7 @@ func scan(reader io.Reader) (size int, err error) {
         }
 
         if string(bytes) == "ID3" {
-            if sizeframe, err = parseid3v2(bufferedreader); err != nil {
+            if sizeframe, err = m.parseid3v2(bufferedreader); err != nil {
                 break
             }
             size += sizeframe
@@ -281,7 +308,7 @@ func scan(reader io.Reader) (size int, err error) {
         }
 
         if bytes[0] == 0xff && bytes[1] & 0xe0 == 0xe0 {
-            if sizeframe, err = parsemp3frame(bufferedreader); err != nil {
+            if sizeframe, err = m.parsemp3frame(bufferedreader); err != nil {
                 break
             }
             size += sizeframe
@@ -293,16 +320,17 @@ func scan(reader io.Reader) (size int, err error) {
         }
 
         if string(bytes) == "APETAGEX" {
-            if sizeframe, err = parseape(bufferedreader); err != nil {
+            if sizeframe, err = m.parseape(bufferedreader); err != nil {
                 break
             }
             size += sizeframe
             continue
         }
 
-        fmt.Printf("Unrecognised:  %v\n", bytes)
-        bufferedreader.Discard(1)
         size++
+        if err = m.mp3adorahandler.processunrecognised(bytes[0]); err != nil {
+            return size, err
+        }
     }
 
     if err != io.EOF {
@@ -313,10 +341,56 @@ func scan(reader io.Reader) (size int, err error) {
 }
 
 
+type mp3adorashowhandler struct {
+    stdout io.Writer
+    stderr io.Writer
+}
+
+
+func newmp3adorashowhandler(stdout io.Writer,
+                            stderr io.Writer) *mp3adorashowhandler {
+    return &mp3adorashowhandler{ stdout: stdout,
+                                 stderr: stderr }
+}
+
+
+func (h *mp3adorashowhandler) processape(bytes []byte) (err error) {
+    fmt.Fprintf(h.stdout, "ape:       %d bytes:  %v\n", len(bytes), bytes)
+    return nil
+}
+
+
+func (h *mp3adorashowhandler) processid3v1(bytes []byte) (err error) {
+    fmt.Fprintf(h.stdout, "id3v1:     %d bytes:  %v\n", len(bytes), bytes)
+    return nil
+}
+
+
+func (h *mp3adorashowhandler) processid3v2(bytes []byte) (err error) {
+    fmt.Fprintf(h.stdout, "id3v2:     %d bytes:  %v\n", len(bytes), bytes)
+    return nil
+}
+
+
+func (h *mp3adorashowhandler) processmp3frame(bytes []byte) (err error) {
+    fmt.Fprintf(h.stdout, "mp3frame:  %d bytes:  %v\n", len(bytes), bytes)
+    return nil
+}
+
+
+func (h *mp3adorashowhandler) processunrecognised(byte byte) (err error) {
+    fmt.Fprintf(h.stdout, "unrecognised:  1 byte:  %v\n", byte)
+    return nil
+}
+
+
 func _main(stdin *os.File,
            stdout *os.File,
            stderr *os.File,
            args []string) (exitstatus int) {
+    mp3adorashowhandler := newmp3adorashowhandler(stdout, stderr)
+    mp3adora := newmp3adora(mp3adorashowhandler)
+
     var file *os.File
     var err error
     if file, err = os.Open("file.mp3"); err != nil {
@@ -327,7 +401,7 @@ func _main(stdin *os.File,
     defer file.Close()
 
     var size int
-    if size, err = scan(file); err != nil {
+    if size, err = mp3adora.parse(file); err != nil {
         fmt.Fprintf(stderr, "mp3adora: %s\n", err)
         return exitfailure
     }
