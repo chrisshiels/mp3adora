@@ -437,7 +437,7 @@ func (h *mp3adorashowhandler) processid3v1(bytes []byte) (err error) {
         return err
     }
 
-    fmt.Fprintf(h.stdout, "id3v1:     %d bytes:  %v, ", len(bytes), bytes)
+    fmt.Fprintf(h.stdout, "id3v1:     %d bytes:  ", len(bytes))
     fmt.Fprintf(h.stdout, "header: %s, ", i.header)
     fmt.Fprintf(h.stdout, "title: %s, ", i.title)
     fmt.Fprintf(h.stdout, "artist: %s, ", i.artist)
