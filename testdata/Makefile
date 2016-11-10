@@ -6,7 +6,7 @@ all: file.wav file.mp3 fileid3v12.mp3
 
 
 file.wav:
-	sox --rate 44100 -n file.wav synth 3 sine 300-600
+	sox --rate 44100 --bits 24 --channels 2 -n file.wav synth 3 sine 300-600
 
 
 file.mp3: file.wav
