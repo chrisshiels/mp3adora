@@ -24,7 +24,7 @@ func mainshow(stdin *os.File,
     flagset := flag.NewFlagSet(args[0], flag.ExitOnError)
 
     flagset.Usage = func() {
-        fmt.Fprintln(stdout, "Usage:  mp3adora [ -v ] show [ filename ...]")
+        fmt.Fprintln(stdout, "Usage:  mp3adora [ -v ] show [ filename ... ]")
         flag.PrintDefaults()
     }
 
