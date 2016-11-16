@@ -19,8 +19,8 @@ const exitfailure = 1
 func show(stdin *os.File,
           stdout *os.File,
           stderr *os.File,
-          filename string,
-          verbose bool) (size int, err error) {
+          verbose bool,
+          filename string) (size int, err error) {
     mp3adorashowhandler := newmp3adorashowhandler(stdout, stderr)
     mp3adora := newmp3adora(mp3adorashowhandler)
 
@@ -46,8 +46,8 @@ func show(stdin *os.File,
 func mainshow(stdin *os.File,
               stdout *os.File,
               stderr *os.File,
-              args []string,
-              verbose bool) (exitstatus int) {
+              verbose bool,
+              args []string) (exitstatus int) {
     flagset := flag.NewFlagSet("show", flag.ExitOnError)
 
     flagset.Usage = func() {
@@ -60,7 +60,7 @@ func mainshow(stdin *os.File,
     flagset.Parse(args)
 
     if len(flagset.Args()) == 0 {
-        size, err := show(stdin, stdout, stderr, "", verbose)
+        size, err := show(stdin, stdout, stderr, verbose, "")
         if err != nil {
             fmt.Fprintf(stderr, "mp3adora: %s\n", err)
             return exitfailure
@@ -73,7 +73,7 @@ func mainshow(stdin *os.File,
             }
             fmt.Fprintf(stdout, "%s:\n", filename)
 
-            size, err := show(stdin, stdout, stderr, filename, verbose)
+            size, err := show(stdin, stdout, stderr, verbose, filename)
             if err != nil {
                 fmt.Fprintf(stderr, "mp3adora: %s\n", err)
                 return exitfailure
@@ -93,11 +93,11 @@ func _main(stdin *os.File,
     flagset := flag.NewFlagSet(args[0], flag.ExitOnError)
 
     flagset.Usage = func() {
-        fmt.Fprintln(stdout, "Usage:  mp3adora [ -v ] command [ options ... ]")
+        fmt.Fprintln(stdout, "Usage:  mp3adora [ -v ] command options ...")
         fmt.Fprintln(stdout)
         fmt.Fprintln(stdout, "Valid commands are:")
         fmt.Fprintln(stdout, "show")
-        flag.PrintDefaults()
+        flagset.PrintDefaults()
     }
 
     flagv := flagset.Bool("v",
@@ -115,7 +115,11 @@ func _main(stdin *os.File,
 
     switch {
         case flagset.Args()[0] == "show":
-            return mainshow(stdin, stdout, stderr, flagset.Args()[1:], *flagv)
+            return mainshow(stdin,
+                            stdout,
+                            stderr,
+                            *flagv,
+                            flagset.Args()[1:])
     }
 
     flagset.Usage()
