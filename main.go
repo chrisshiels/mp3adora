@@ -25,8 +25,10 @@ func _main(stdin *os.File,
     flagset.Usage = func() {
         fmt.Fprintln(stdout, "Usage:  mp3adora [ -v ] command options ...")
         fmt.Fprintln(stdout)
-        fmt.Fprintln(stdout, "Valid commands are:")
-        fmt.Fprintln(stdout, "show")
+        fmt.Fprintln(stdout, "Commands:")
+        fmt.Fprintln(stdout, "show        Parse contents of mp3 files")
+        fmt.Fprintln(stdout)
+        fmt.Fprintln(stdout, "Options:")
         flagset.PrintDefaults()
     }
 
