@@ -47,8 +47,7 @@ func newid3v1frombytes(bytes []byte) (i *id3v1, err error) {
 }
 
 
-func newid3v1fromitems(header string,
-                       title string,
+func newid3v1fromitems(title string,
                        artist string,
                        album string,
                        year string,
