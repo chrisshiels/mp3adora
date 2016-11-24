@@ -313,10 +313,14 @@ func (m *mp3adora) parse(reader io.Reader) (size int, err error) {
             continue
         }
 
-        size++
-        if err = m.mp3adorahandler.processunrecognised(bytes[0]); err != nil {
+        bytes1 := make([]byte, 1)
+        if n, err := io.ReadFull(bufferedreader, bytes1); n != 1 || err != nil {
+            return 0, err
+        }
+        if err = m.mp3adorahandler.processunrecognised(bytes1[0]); err != nil {
             return size, err
         }
+        size++
     }
 
     if err != io.EOF {
