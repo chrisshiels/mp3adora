@@ -48,7 +48,7 @@ func mainshow(stdin *os.File,
 
     flagset.Usage = func() {
         fmt.Fprintln(stdout, "Usage:  mp3adora [ -v ] show [ filename ... ]")
-        flag.PrintDefaults()
+        flagset.PrintDefaults()
     }
 
     // Note flagset.Parse() will also handle '-h' and '--help' and will exit
