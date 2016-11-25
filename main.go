@@ -27,6 +27,7 @@ func _main(stdin *os.File,
         fmt.Fprintln(stdout)
         fmt.Fprintln(stdout, "Commands:")
         fmt.Fprintln(stdout, "show        Parse contents of mp3 files")
+        fmt.Fprintln(stdout, "tagalbum    Tag mp3 files with id3v1 tags")
         fmt.Fprintln(stdout)
         fmt.Fprintln(stdout, "Options:")
         flagset.PrintDefaults()
@@ -52,6 +53,12 @@ func _main(stdin *os.File,
                             stderr,
                             *flagv,
                             flagset.Args()[1:])
+        case flagset.Args()[0] == "tagalbum":
+            return maintagalbum(stdin,
+                                stdout,
+                                stderr,
+                                *flagv,
+                                flagset.Args()[1:])
     }
 
     flagset.Usage()
