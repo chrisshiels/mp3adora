@@ -14,6 +14,8 @@ import (
     "path"
     "regexp"
     "strconv"
+
+    "golang.org/x/text/encoding"
 )
 
 
@@ -22,8 +24,16 @@ func tagalbum(stdin *os.File,
               stderr *os.File,
               verbose bool,
               directorypath string,
-              encoding string,
+              encodingname string,
               dryrun bool) (err error) {
+    var e encoding.Encoding
+    if encodingname != "utf-8" {
+        e, err = find(encodingname)
+        if e == nil {
+            return fmt.Errorf("Unrecognised encoding %s", encodingname)
+        }
+    }
+
     _, directoryname := path.Split(directorypath)
 
     regexpdirectory :=
@@ -36,6 +46,18 @@ func tagalbum(stdin *os.File,
     artist := resultdirectory[1]
     year := resultdirectory[2]
     album := resultdirectory[3]
+
+    if encodingname != "utf-8" {
+        if artist, err = convert(e, artist, '?'); err != nil {
+            return fmt.Errorf("Unable to convert artist to %s",
+                              encodingname)
+        }
+
+        if album, err = convert(e, album, '?'); err != nil {
+            return fmt.Errorf("Unable to convert album to %s",
+                              encodingname)
+        }
+    }
 
     fileinfos, err := ioutil.ReadDir(directorypath)
     if (err != nil) {
@@ -58,6 +80,13 @@ func tagalbum(stdin *os.File,
 
         track, _ := strconv.Atoi(resultfile[1])
         title := resultfile[3]
+
+        if encodingname != "utf-8" {
+            if title, err = convert(e, title, '?'); err != nil {
+                return fmt.Errorf("Unable to convert title to %s",
+                                  encodingname)
+            }
+        }
 
         id3v1 := newid3v1fromitems(title,
                                    artist,
